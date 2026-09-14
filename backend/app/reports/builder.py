@@ -134,17 +134,35 @@ def _ml_sections_data(result: dict) -> tuple[bool, list[dict], dict]:
 
 
 # ---------------------------------------------------------------------------
-# COLOR PALETTE (Enterprise Forensic Security Theme)
+# COLOR PALETTE (Website Brand: Violet / Aubergine Theme)
+# Derived from frontend/tokens.css and globals.css:
+#   --color-primary: #6A2F8D (violet primary, hero bands, brand accents)
+#   --color-accent:  #AD22FF (vivid violet accent)
+#   --grad-deep:     #3A194D (deep aubergine elevated headers)
+#   --color-paper:   #2A232A (aubergine canvas)
+#   --color-paper-2: #F8F6F8 (light paper surface for print/PDF)
+#   --color-paper-3: #EFECEF (elevated card / alt rows)
+#   --color-ink:     #1D161D (dark ink for text)
+#   --color-neutral: #564E56 (secondary text)
+#   --color-muted:   #786C78 (tertiary labels & metadata)
+#   --color-rule:    #D9D9D9 (borders)
 # ---------------------------------------------------------------------------
-NAVY_DEEP = colors.HexColor("#0B132B")      # Top hero banner
-NAVY_CARD = colors.HexColor("#1C2541")      # Table dark headers
-SLATE_DARK = colors.HexColor("#1E293B")     # Primary headings
-SLATE_MID = colors.HexColor("#334155")      # Secondary text
-SLATE_MUTED = colors.HexColor("#64748B")    # Labels & metadata
-BORDER_LIGHT = colors.HexColor("#E2E8F0")   # Borders
-BORDER_MID = colors.HexColor("#CBD5E1")     # Header divider
-SURFACE_LIGHT = colors.HexColor("#F8FAFC")  # Shaded cards
-SURFACE_ALT = colors.HexColor("#F1F5F9")    # Table alternate rows
+VIOLET_PRIMARY = colors.HexColor("#6A2F8D")  # Website primary violet (hero banner, section titles)
+AUBERGINE_DEEP = colors.HexColor("#3A194D")  # Website deep aubergine (table dark headers)
+INK_DARK       = colors.HexColor("#1D161D")  # Website ink (primary body text, dark values)
+NEUTRAL_MID    = colors.HexColor("#564E56")  # Website neutral (secondary text)
+MUTED_TEXT     = colors.HexColor("#786C78")  # Website muted (labels, metadata, timestamps)
+BORDER_LIGHT   = colors.HexColor("#D9D9D9")  # Website rule (card & table borders)
+BORDER_MID     = colors.HexColor("#C4BCC4")  # Header divider / subtle rule
+SURFACE_LIGHT  = colors.HexColor("#F8F6F8")  # Website paper-2 (shaded cards, alt rows)
+SURFACE_ALT    = colors.HexColor("#EFECEF")  # Website paper-3 (elevated card backgrounds)
+
+# Legacy aliases for internal references
+NAVY_DEEP = VIOLET_PRIMARY
+NAVY_CARD = AUBERGINE_DEEP
+SLATE_DARK = INK_DARK
+SLATE_MID = NEUTRAL_MID
+SLATE_MUTED = MUTED_TEXT
 
 SEV_CONFIG = {
     "critical": {
@@ -176,10 +194,10 @@ SEV_CONFIG = {
         "name": "LOW",
     },
     "info": {
-        "text": colors.HexColor("#334155"),
-        "bg": colors.HexColor("#F8FAFC"),
-        "border": colors.HexColor("#94A3B8"),
-        "badge": colors.HexColor("#64748B"),
+        "text": NEUTRAL_MID,
+        "bg": SURFACE_LIGHT,
+        "border": BORDER_MID,
+        "badge": MUTED_TEXT,
         "name": "INFO",
     },
 }
@@ -222,10 +240,10 @@ class NumberedCanvas(canvas.Canvas):
         # Running header on page 2+
         if self._pageNumber > 1:
             self.setFont("Helvetica-Bold", 7.5)
-            self.setFillColor(NAVY_CARD)
+            self.setFillColor(VIOLET_PRIMARY)
             self.drawString(margin, h - 9.5 * mm, "PRAHARI // SECUREMAILSCOPE")
             self.setFont("Helvetica", 7.5)
-            self.setFillColor(SLATE_MUTED)
+            self.setFillColor(MUTED_TEXT)
             self.drawString(margin + 52 * mm, h - 9.5 * mm, "— Cryptographic Security Posture Assessment")
             self.drawRightString(w - margin, h - 9.5 * mm, "OFFICIAL FORENSIC AUDIT")
 
@@ -239,14 +257,14 @@ class NumberedCanvas(canvas.Canvas):
         self.line(margin, 12 * mm, w - margin, 12 * mm)
 
         self.setFont("Helvetica-Bold", 7)
-        self.setFillColor(NAVY_CARD)
+        self.setFillColor(VIOLET_PRIMARY)
         self.drawString(margin, 8 * mm, "PRAHARI")
         self.setFont("Helvetica", 7)
-        self.setFillColor(SLATE_MUTED)
+        self.setFillColor(MUTED_TEXT)
         self.drawString(margin + 15 * mm, 8 * mm, "· SIH 2026 NTRO (PS-26159) · Passive PCAP Cryptanalysis · Zero Active Probing")
 
         self.setFont("Helvetica-Bold", 7.5)
-        self.setFillColor(SLATE_DARK)
+        self.setFillColor(INK_DARK)
         self.drawRightString(w - margin, 8 * mm, f"Page {self._pageNumber} of {total_pages}")
 
         self.restoreState()
@@ -278,7 +296,7 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
         fontName="Helvetica-Bold",
         fontSize=11,
         leading=14,
-        textColor=NAVY_DEEP,
+        textColor=VIOLET_PRIMARY,
         spaceBefore=4,
         spaceAfter=2,
         keepWithNext=True,
@@ -289,7 +307,7 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
         fontName="Helvetica",
         fontSize=7.5,
         leading=10,
-        textColor=SLATE_MUTED,
+        textColor=MUTED_TEXT,
         spaceAfter=4,
         keepWithNext=True,
     )
@@ -299,15 +317,15 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
         fontName="Helvetica",
         fontSize=7.5,
         leading=10.5,
-        textColor=SLATE_DARK,
+        textColor=INK_DARK,
     )
 
     style_mono = ParagraphStyle(
         "Mono",
-        fontName="Courier",
+        fontName="Courier-Bold",
         fontSize=7,
         leading=8.5,
-        textColor=colors.HexColor("#0369A1"),
+        textColor=VIOLET_PRIMARY,
     )
 
     story = []
@@ -319,33 +337,33 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
     esc_scan_name = _esc(scan_name)
     left_banner = [
         Paragraph(
-            "<font color='#38BDF8' size='7'><b>SMART INDIA HACKATHON 2026 · NTRO PROBLEM STATEMENT 26159</b></font>",
+            "<font color='#6A2F8D' size='7'><b>SMART INDIA HACKATHON 2026 · NTRO PROBLEM STATEMENT 26159</b></font>",
             ParagraphStyle("BTag", leading=8.5),
         ),
         Spacer(1, 1.5 * mm),
         Paragraph(
-            "<font color='#FFFFFF' size='20'><b>PRAHARI</b></font> "
-            "<font color='#94A3B8' size='11'><b>| SECUREMAILSCOPE</b></font>",
+            "<font color='#1D161D' size='20'><b>PRAHARI</b></font> "
+            "<font color='#6A2F8D' size='11'><b>| SECUREMAILSCOPE</b></font>",
             ParagraphStyle("BTitle", leading=21),
         ),
         Paragraph(
-            "<font color='#CBD5E1' size='7.5'>Passive Cryptographic Posture Assessment &amp; Forensic Analysis</font>",
+            "<font color='#564E56' size='7.5'>Passive Cryptographic Posture Assessment &amp; Forensic Analysis</font>",
             ParagraphStyle("BSub", leading=10),
         ),
     ]
 
     right_banner = [
         Paragraph(
-            f"<font color='#94A3B8' size='6.8'>TARGET ARTIFACT</font><br/>"
-            f"<font color='#38BDF8' size='8'><b>{esc_scan_name}</b></font>",
+            f"<font color='#786C78' size='6.8'>TARGET ARTIFACT</font><br/>"
+            f"<font color='#6A2F8D' size='8'><b>{esc_scan_name}</b></font>",
             ParagraphStyle("BRight1", leading=9.5, alignment=2),
         ),
         Spacer(1, 1.5 * mm),
         Paragraph(
-            f"<font color='#94A3B8' size='6.8'>TIMESTAMP: </font>"
-            f"<font color='#FFFFFF' size='7'>{now_str}</font><br/>"
-            f"<font color='#94A3B8' size='6.8'>STANDARD: </font>"
-            f"<font color='#FFFFFF' size='7'>NIST SP 800-52r2 · BSI · CERT-In</font>",
+            f"<font color='#786C78' size='6.8'>TIMESTAMP: </font>"
+            f"<font color='#1D161D' size='7'><b>{now_str}</b></font><br/>"
+            f"<font color='#786C78' size='6.8'>STANDARD: </font>"
+            f"<font color='#1D161D' size='7'><b>NIST SP 800-52r2 · BSI · CERT-In</b></font>",
             ParagraphStyle("BRight2", leading=9, alignment=2),
         ),
     ]
@@ -356,12 +374,14 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
     )
     banner_table.setStyle(
         TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), NAVY_DEEP),
+            ("BACKGROUND", (0, 0), (-1, -1), SURFACE_LIGHT),
+            ("BOX", (0, 0), (-1, -1), 0.75, BORDER_LIGHT),
+            ("LINEBEFORE", (0, 0), (0, -1), 3.0, VIOLET_PRIMARY),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("TOPPADDING", (0, 0), (-1, -1), 6 * mm),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6 * mm),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6 * mm),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 6 * mm),
+            ("TOPPADDING", (0, 0), (-1, -1), 5 * mm),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5 * mm),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5 * mm),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5 * mm),
         ])
     )
     story.append(banner_table)
@@ -393,53 +413,53 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
 
     # Card 1: Grade & Score
     c1 = [
-        Paragraph("<font size='6.8' color='#64748B'><b>OVERALL POSTURE</b></font>", ParagraphStyle("C1L", leading=8.5)),
+        Paragraph("<font size='6.8' color='#786C78'><b>OVERALL POSTURE</b></font>", ParagraphStyle("C1L", leading=8.5)),
         Spacer(1, 1 * mm),
         Paragraph(
             f"<font size='20' color='{grade_col.hexval()}'><b>GRADE {grade}</b></font>",
             ParagraphStyle("C1G", leading=20),
         ),
         Paragraph(
-            f"<font size='10.5' color='{grade_col.hexval()}'><b>{score}</b></font><font size='7.5' color='#64748B'> / 100</font>",
+            f"<font size='10.5' color='{grade_col.hexval()}'><b>{score}</b></font><font size='7.5' color='#786C78'> / 100</font>",
             ParagraphStyle("C1S", leading=11),
         ),
         Spacer(1, 1 * mm),
         Paragraph(
             f"<b><font size='7.2' color='{grade_col.hexval()}'>{verdict_title}</font></b><br/>"
-            f"<font size='6.2' color='#64748B'>{verdict_desc}</font>",
+            f"<font size='6.2' color='#786C78'>{verdict_desc}</font>",
             ParagraphStyle("C1D", leading=8),
         ),
     ]
 
     # Card 2: Score Fusion
     c2 = [
-        Paragraph("<font size='6.8' color='#64748B'><b>SCORE FUSION ENGINE</b></font>", ParagraphStyle("C2L", leading=8.5)),
+        Paragraph("<font size='6.8' color='#786C78'><b>SCORE FUSION ENGINE</b></font>", ParagraphStyle("C2L", leading=8.5)),
         Spacer(1, 1 * mm),
         Paragraph(
-            f"<font size='7' color='#334155'>Rule score: </font>"
-            f"<b><font size='7.5' color='#0F172A'>{rule_score}/100</font></b>",
+            f"<font size='7' color='#564E56'>Rule score: </font>"
+            f"<b><font size='7.5' color='#1D161D'>{rule_score}/100</font></b>",
             ParagraphStyle("C2R", leading=9.5),
         ),
         Paragraph(
-            f"<font size='7' color='#334155'>AI ML adjustment: </font>"
+            f"<font size='7' color='#564E56'>AI ML adjustment: </font>"
             f"<b><font size='7.5' color='#DC2626'>−{ml_adj} pts</font></b>",
             ParagraphStyle("C2A", leading=9.5),
         ),
         Paragraph(
-            f"<font size='7' color='#334155'>Fused posture: </font>"
+            f"<font size='7' color='#564E56'>Fused posture: </font>"
             f"<b><font size='8' color='{grade_col.hexval()}'>{score}/100</font></b>",
             ParagraphStyle("C2F", leading=10),
         ),
         Spacer(1, 1 * mm),
         Paragraph(
-            "<font size='6.2' color='#64748B'>Score = clamp(Rule − Adj, 0, 100)<br/>Bounded adjustment ≤10 pts max</font>",
+            "<font size='6.2' color='#786C78'>Score = clamp(Rule − Adj, 0, 100)<br/>Bounded adjustment ≤10 pts max</font>",
             ParagraphStyle("C2M", leading=7.5),
         ),
     ]
 
     # Card 3: Severity breakdown
     c3 = [
-        Paragraph("<font size='6.8' color='#64748B'><b>FINDINGS BREAKDOWN</b></font>", ParagraphStyle("C3L", leading=8.5)),
+        Paragraph("<font size='6.8' color='#786C78'><b>FINDINGS BREAKDOWN</b></font>", ParagraphStyle("C3L", leading=8.5)),
         Spacer(1, 1 * mm),
         Paragraph(
             f"<font color='#DC2626' size='7.5'>● <b>{sev_counts.get('critical', 0)} Critical</b></font>&nbsp;&nbsp;"
@@ -452,12 +472,12 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
             ParagraphStyle("C32", leading=9.5),
         ),
         Paragraph(
-            f"<font color='#64748B' size='7.5'>● <b>{sev_counts.get('info', 0)} Informational</b></font>",
+            f"<font color='#786C78' size='7.5'>● <b>{sev_counts.get('info', 0)} Informational</b></font>",
             ParagraphStyle("C33", leading=9.5),
         ),
         Spacer(1, 1 * mm),
         Paragraph(
-            f"<font size='6.2' color='#64748B'>Total findings: {len(result.get('findings', []))}</font>",
+            f"<font size='6.2' color='#786C78'>Total findings: {len(result.get('findings', []))}</font>",
             ParagraphStyle("C3T", leading=7.5),
         ),
     ]
@@ -466,26 +486,26 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
     proto_items = [f"{k.upper()} ({v})" for k, v in sorted(result.get("protocol_counts", {}).items())]
     proto_str = ", ".join(proto_items) if proto_items else "None"
     c4 = [
-        Paragraph("<font size='6.8' color='#64748B'><b>SCOPE &amp; TELEMETRY</b></font>", ParagraphStyle("C4L", leading=8.5)),
+        Paragraph("<font size='6.8' color='#786C78'><b>SCOPE &amp; TELEMETRY</b></font>", ParagraphStyle("C4L", leading=8.5)),
         Spacer(1, 1 * mm),
         Paragraph(
-            f"<font size='7' color='#334155'>Sessions: </font>"
-            f"<b><font size='7.5' color='#0F172A'>{len(result.get('sessions', []))}</font></b>",
+            f"<font size='7' color='#564E56'>Sessions: </font>"
+            f"<b><font size='7.5' color='#1D161D'>{len(result.get('sessions', []))}</font></b>",
             ParagraphStyle("C4S", leading=9.5),
         ),
         Paragraph(
-            f"<font size='7' color='#334155'>Protocols: </font>"
-            f"<b><font size='7.5' color='#0F172A'>{proto_str}</font></b>",
+            f"<font size='7' color='#564E56'>Protocols: </font>"
+            f"<b><font size='7.5' color='#1D161D'>{proto_str}</font></b>",
             ParagraphStyle("C4P", leading=9.5),
         ),
         Paragraph(
-            f"<font size='7' color='#334155'>Certificates: </font>"
-            f"<b><font size='7.5' color='#0F172A'>{len(result.get('certificates', []))}</font></b>",
+            f"<font size='7' color='#564E56'>Certificates: </font>"
+            f"<b><font size='7.5' color='#1D161D'>{len(result.get('certificates', []))}</font></b>",
             ParagraphStyle("C4C", leading=9.5),
         ),
         Spacer(1, 1 * mm),
         Paragraph(
-            "<font size='6.2' color='#64748B'>Passive TCP stream reassembly</font>",
+            "<font size='6.2' color='#786C78'>Passive TCP stream reassembly</font>",
             ParagraphStyle("C4Sub", leading=7.5),
         ),
     ]
@@ -610,25 +630,25 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
 
             for f in items:
                 sid_display = _esc(f.get("session_id") or "Global")
-                cell_sess = Paragraph(f"<font color='#0369A1'><b>{sid_display}</b></font>", style_mono)
+                cell_sess = Paragraph(f"<font color='#6A2F8D'><b>{sid_display}</b></font>", style_mono)
                 cell_desc = Paragraph(
                     f"<b>{_esc(f.get('title', '—'))}</b><br/>"
-                    f"<font color='#475569' size='6.5'>{_esc(f.get('description', ''))}</font>",
+                    f"<font color='#564E56' size='6.5'>{_esc(f.get('description', ''))}</font>",
                     ParagraphStyle("FDesc", fontName="Helvetica", fontSize=7, leading=9),
                 )
                 cell_ref = Paragraph(
-                    f"<font color='#334155' size='6.5'>{_esc(f.get('reference', '—'))}</font>",
+                    f"<font color='#564E56' size='6.5'>{_esc(f.get('reference', '—'))}</font>",
                     ParagraphStyle("FRef", fontName="Helvetica", fontSize=6.5, leading=8),
                 )
                 cell_rem = Paragraph(
-                    f"<font color='#0F172A' size='6.5'>{_esc(f.get('remediation', '—'))}</font>",
+                    f"<font color='#1D161D' size='6.5'>{_esc(f.get('remediation', '—'))}</font>",
                     ParagraphStyle("FRem", fontName="Helvetica", fontSize=6.5, leading=8),
                 )
                 rows.append([cell_sess, cell_desc, cell_ref, cell_rem])
 
             find_table = Table(rows, colWidths=[20 * mm, 62 * mm, 48 * mm, 52 * mm], repeatRows=1)
             find_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), NAVY_CARD),
+                ("BACKGROUND", (0, 0), (-1, 0), AUBERGINE_DEEP),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                 ("GRID", (0, 0), (-1, -1), 0.4, BORDER_LIGHT),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -658,13 +678,13 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
         ]]
         for a in advisories:
             adv_rows.append([
-                Paragraph(f"<font color='#0369A1'><b>{_esc(a.get('session_id') or '—')}</b></font>", style_mono),
-                Paragraph(f"<b>{_esc(a.get('title'))}</b><br/><font color='#64748B' size='6.5'>{_esc(a.get('description', ''))}</font>", ParagraphStyle("AD1", fontName="Helvetica", fontSize=7, leading=9)),
-                Paragraph(f"<font color='#334155' size='6.5'>{_esc(a.get('remediation', '—'))}</font>", ParagraphStyle("AD2", fontName="Helvetica", fontSize=6.5, leading=8)),
+                Paragraph(f"<font color='#6A2F8D'><b>{_esc(a.get('session_id') or '—')}</b></font>", style_mono),
+                Paragraph(f"<b>{_esc(a.get('title'))}</b><br/><font color='#786C78' size='6.5'>{_esc(a.get('description', ''))}</font>", ParagraphStyle("AD1", fontName="Helvetica", fontSize=7, leading=9)),
+                Paragraph(f"<font color='#564E56' size='6.5'>{_esc(a.get('remediation', '—'))}</font>", ParagraphStyle("AD2", fontName="Helvetica", fontSize=6.5, leading=8)),
             ])
         adv_table = Table(adv_rows, colWidths=[20 * mm, 86 * mm, 76 * mm], repeatRows=1)
         adv_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), SLATE_DARK),
+            ("BACKGROUND", (0, 0), (-1, 0), AUBERGINE_DEEP),
             ("GRID", (0, 0), (-1, -1), 0.4, BORDER_LIGHT),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, SURFACE_LIGHT]),
@@ -694,19 +714,19 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
         s_grade = s.get("grade", "—")
         s_col = GRADE_COLORS.get(s_grade, SLATE_DARK)
         pfs_str = "Yes" if s.get("pfs") is True else ("No" if s.get("pfs") is False else "—")
-        pfs_col = "#059669" if pfs_str == "Yes" else ("#DC2626" if pfs_str == "No" else "#64748B")
+        pfs_col = "#059669" if pfs_str == "Yes" else ("#DC2626" if pfs_str == "No" else "#786C78")
 
         ml_obj = s.get("ml_risk") or {}
         ml_label = ml_obj.get("label", "—")
-        ml_badge_col = "#DC2626" if ml_label in ("critical", "high") else ("#059669" if ml_label == "clean" else "#64748B")
+        ml_badge_col = "#DC2626" if ml_label in ("critical", "high") else ("#059669" if ml_label == "clean" else "#786C78")
 
         cipher_str = _esc(s.get("cipher_suite") or "—")
         sess_rows.append([
-            Paragraph(f"<font color='#0369A1'><b>{_esc(s.get('session_id', '—'))}</b></font>", style_mono),
+            Paragraph(f"<font color='#6A2F8D'><b>{_esc(s.get('session_id', '—'))}</b></font>", style_mono),
             Paragraph(f"<b>{_esc((s.get('protocol') or '').upper())}</b>", ParagraphStyle("SP", fontName="Helvetica", fontSize=6.8)),
-            Paragraph(f"<font color='#475569'>{_esc(s.get('transport', '—'))}</font>", ParagraphStyle("ST", fontName="Helvetica", fontSize=6.8)),
+            Paragraph(f"<font color='#564E56'>{_esc(s.get('transport', '—'))}</font>", ParagraphStyle("ST", fontName="Helvetica", fontSize=6.8)),
             Paragraph(f"<b>{_esc(s.get('tls_version') or '—')}</b>", ParagraphStyle("SV", fontName="Helvetica", fontSize=6.8)),
-            Paragraph(f"<font color='#0F172A' size='6.5'>{cipher_str}</font>", ParagraphStyle("SC", fontName="Courier", fontSize=6.5, leading=7.8)),
+            Paragraph(f"<font color='#1D161D' size='6.5'>{cipher_str}</font>", ParagraphStyle("SC", fontName="Courier", fontSize=6.5, leading=7.8)),
             Paragraph(f"<font color='{pfs_col}'><b>{pfs_str}</b></font>", ParagraphStyle("SPF", fontName="Helvetica", fontSize=6.8)),
             Paragraph(f"<b><font color='{s_col.hexval()}'>{s_grade} ({s.get('risk_score', 0)})</font></b>", ParagraphStyle("SG", fontName="Helvetica", fontSize=6.8)),
             Paragraph(f"<font color='{ml_badge_col}'><b>{ml_label}</b></font>", ParagraphStyle("SM", fontName="Helvetica", fontSize=6.8)),
@@ -714,7 +734,7 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
 
     sess_table = Table(sess_rows, colWidths=[18 * mm, 14 * mm, 20 * mm, 17 * mm, 61 * mm, 14 * mm, 20 * mm, 18 * mm], repeatRows=1)
     sess_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), NAVY_CARD),
+        ("BACKGROUND", (0, 0), (-1, 0), AUBERGINE_DEEP),
         ("GRID", (0, 0), (-1, -1), 0.4, BORDER_LIGHT),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, SURFACE_LIGHT]),
@@ -734,7 +754,7 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
 
     if not ml_on:
         ml_box = Table(
-            [[Paragraph("<font color='#64748B'>AI ML layer was not enabled for this scan. Rule evaluation is fully active.</font>", style_normal)]],
+            [[Paragraph("<font color='#786C78'>AI ML layer was not enabled for this scan. Rule evaluation is fully active.</font>", style_normal)]],
             colWidths=[pw],
         )
         ml_box.setStyle(TableStyle([
@@ -754,14 +774,14 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
             feats = ", ".join(f"{_esc(x['feature']).replace('_', ' ')} at {x['z']}σ (val {x['value']})" for x in a.get("top_features", []))
             ml_risk = a.get("ml_risk") or {}
             anom_rows.append([
-                Paragraph(f"<font color='#0369A1'><b>{_esc(a.get('session_id', '—'))}</b></font>", style_mono),
+                Paragraph(f"<font color='#6A2F8D'><b>{_esc(a.get('session_id', '—'))}</b></font>", style_mono),
                 Paragraph(f"<b><font color='#DC2626'>{a.get('score', 0)}</font></b>", ParagraphStyle("ANS", fontName="Helvetica", fontSize=6.8)),
                 Paragraph(f"<b>{_esc(ml_risk.get('label', '—'))}</b>", ParagraphStyle("ANR", fontName="Helvetica", fontSize=6.8)),
-                Paragraph(f"<font color='#334155' size='6.5'>{feats}</font>", ParagraphStyle("ANF", fontName="Helvetica", fontSize=6.5, leading=8)),
+                Paragraph(f"<font color='#564E56' size='6.5'>{feats}</font>", ParagraphStyle("ANF", fontName="Helvetica", fontSize=6.5, leading=8)),
             ])
         anom_table = Table(anom_rows, colWidths=[20 * mm, 24 * mm, 24 * mm, 114 * mm], repeatRows=1)
         anom_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), NAVY_CARD),
+            ("BACKGROUND", (0, 0), (-1, 0), AUBERGINE_DEEP),
             ("GRID", (0, 0), (-1, -1), 0.4, BORDER_LIGHT),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, SURFACE_LIGHT]),
@@ -818,11 +838,11 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
                 Paragraph(f"{_esc(c.get('key_algorithm', ''))} {_esc(c.get('key_length', ''))}b", ParagraphStyle("CK", fontName="Helvetica", fontSize=6.8)),
                 Paragraph(f"{_esc(c.get('signature_hash', '—'))}", ParagraphStyle("CS", fontName="Helvetica", fontSize=6.8)),
                 Paragraph(val_status, ParagraphStyle("CV", fontName="Helvetica", fontSize=6.8, leading=8)),
-                Paragraph(f"<font color='#0369A1'>{_esc(c.get('fingerprint_sha256', '')[:32])}…</font>", style_mono),
+                Paragraph(f"<font color='#6A2F8D'>{_esc(c.get('fingerprint_sha256', '')[:32])}…</font>", style_mono),
             ])
         cert_table = Table(cert_rows, colWidths=[42 * mm, 24 * mm, 24 * mm, 32 * mm, 60 * mm], repeatRows=1)
         cert_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), NAVY_CARD),
+            ("BACKGROUND", (0, 0), (-1, 0), AUBERGINE_DEEP),
             ("GRID", (0, 0), (-1, -1), 0.4, BORDER_LIGHT),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, SURFACE_LIGHT]),
@@ -831,7 +851,7 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
         story.append(cert_table)
     else:
         no_cert = Table(
-            [[Paragraph("<font color='#64748B'><b>No X.509 certificates observed.</b> Reconstructed sessions were either plaintext email protocols or TLS handshakes did not complete.</font>", style_normal)]],
+            [[Paragraph("<font color='#786C78'><b>No X.509 certificates observed.</b> Reconstructed sessions were either plaintext email protocols or TLS handshakes did not complete.</font>", style_normal)]],
             colWidths=[pw],
         )
         no_cert.setStyle(TableStyle([
@@ -860,15 +880,15 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
         for ref, rid, title, sev, n in comp:
             s_col = SEV_CONFIG.get(sev, SEV_CONFIG["info"])
             comp_rows.append([
-                Paragraph(f"<font color='#0F172A'><b>{_esc(ref)}</b></font>", ParagraphStyle("CORef", fontName="Helvetica", fontSize=6.8, leading=8.5)),
-                Paragraph(f"<font color='#0369A1'><b>{_esc(rid)}</b></font>", style_mono),
+                Paragraph(f"<font color='#1D161D'><b>{_esc(ref)}</b></font>", ParagraphStyle("CORef", fontName="Helvetica", fontSize=6.8, leading=8.5)),
+                Paragraph(f"<font color='#6A2F8D'><b>{_esc(rid)}</b></font>", style_mono),
                 Paragraph(f"{_esc(title)}", ParagraphStyle("COTit", fontName="Helvetica", fontSize=6.8, leading=8)),
                 Paragraph(f"<b><font color='{s_col['badge'].hexval()}'>{sev.upper()}</font></b>", ParagraphStyle("COSev", fontName="Helvetica", fontSize=6.8)),
                 Paragraph(f"<b>{n}</b>", ParagraphStyle("CON", fontName="Helvetica", fontSize=6.8, alignment=1)),
             ])
         comp_table = Table(comp_rows, colWidths=[70 * mm, 22 * mm, 54 * mm, 22 * mm, 14 * mm], repeatRows=1)
         comp_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), NAVY_CARD),
+            ("BACKGROUND", (0, 0), (-1, 0), AUBERGINE_DEEP),
             ("GRID", (0, 0), (-1, -1), 0.4, BORDER_LIGHT),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, SURFACE_LIGHT]),
@@ -946,23 +966,24 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
 <title>Prahari Report — {{ name }}</title>
 <style>
   :root {
-    --bg: #0B132B;
-    --surface: #1C2541;
-    --card: #141D36;
-    --border: #2A3656;
-    --text: #F1F5F9;
-    --muted: #94A3B8;
-    --accent: #38BDF8;
-    --crit: #EF4444;
-    --crit-bg: rgba(239, 68, 68, 0.12);
-    --high: #F97316;
-    --high-bg: rgba(249, 115, 22, 0.12);
-    --med: #FBBF24;
-    --med-bg: rgba(251, 191, 36, 0.12);
-    --low: #38BDF8;
-    --low-bg: rgba(56, 189, 248, 0.12);
-    --ok: #10B981;
-    --ok-bg: rgba(16, 185, 129, 0.12);
+    --bg: #2A232A;
+    --surface: #3B353B;
+    --card: #352E35;
+    --border: #786C78;
+    --text: #F8F6F8;
+    --muted: #C4BCC4;
+    --accent: #AD22FF;
+    --primary: #6A2F8D;
+    --crit: #FF7A6B;
+    --crit-bg: rgba(255, 122, 107, 0.14);
+    --high: #FFB25C;
+    --high-bg: rgba(255, 178, 92, 0.14);
+    --med: #FFE08A;
+    --med-bg: rgba(255, 224, 138, 0.14);
+    --low: #8FD0FF;
+    --low-bg: rgba(143, 208, 255, 0.14);
+    --ok: #7DE8B8;
+    --ok-bg: rgba(125, 232, 184, 0.14);
   }
   * { box-sizing: border-box; }
   body {
@@ -975,11 +996,12 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
   }
   .container { max-width: 1100px; margin: 0 auto; }
   
-  /* Hero Banner */
+  /* Hero Banner - Clean Light Hero matching website */
   .hero {
-    background: linear-gradient(135deg, #0B132B 0%, #1C2541 100%);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: #F8F6F8;
+    border: 1px solid #D9D9D9;
+    border-left: 4px solid #6A2F8D;
+    border-radius: 10px;
     padding: 24px 28px;
     margin-bottom: 24px;
     display: flex;
@@ -992,7 +1014,7 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: var(--accent);
+    color: #6A2F8D;
     text-transform: uppercase;
     margin-bottom: 6px;
   }
@@ -1000,16 +1022,16 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
     font-size: 26px;
     font-weight: 800;
     margin: 0 0 4px;
-    color: #FFF;
+    color: #1D161D;
     display: flex;
     align-items: baseline;
     gap: 8px;
   }
-  .hero-title span { font-size: 16px; font-weight: 500; color: var(--muted); }
-  .hero-sub { color: #CBD5E1; font-size: 13px; margin: 0; }
+  .hero-title span { font-size: 16px; font-weight: 600; color: #6A2F8D; }
+  .hero-sub { color: #564E56; font-size: 13px; margin: 0; }
   .hero-meta { text-align: right; }
-  .hero-meta .file { font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-  .hero-meta .info { font-size: 12px; color: var(--muted); }
+  .hero-meta .file { font-size: 16px; font-weight: 700; color: #6A2F8D; margin-bottom: 4px; }
+  .hero-meta .info { font-size: 12px; color: #786C78; }
 
   /* Dashboard Cards */
   .dashboard {
@@ -1092,8 +1114,8 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
     font-size: 13px;
   }
   th {
-    background: var(--surface);
-    color: #CBD5E1;
+    background: #3A194D;
+    color: #F8F6F8;
     text-align: left;
     padding: 10px 14px;
     font-size: 11px;
@@ -1108,13 +1130,13 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
     vertical-align: top;
   }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255, 255, 255, 0.02); }
+  tr:hover td { background: rgba(255, 255, 255, 0.04); }
   
   /* Badges & Monospace */
   .mono {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
-    color: var(--accent);
+    color: #D8B4FE;
   }
   .badge {
     display: inline-block;
@@ -1128,7 +1150,7 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
   .badge-high { background: var(--high-bg); color: var(--high); border: 1px solid var(--high); }
   .badge-medium { background: var(--med-bg); color: var(--med); border: 1px solid var(--med); }
   .badge-low { background: var(--low-bg); color: var(--low); border: 1px solid var(--low); }
-  .badge-info { background: rgba(148, 163, 184, 0.12); color: var(--muted); border: 1px solid var(--muted); }
+  .badge-info { background: rgba(196, 188, 196, 0.12); color: var(--muted); border: 1px solid var(--muted); }
 
   /* Appendix */
   .appendix {
@@ -1147,23 +1169,25 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
   @media print {
     :root {
       --bg: #FFFFFF;
-      --surface: #F1F5F9;
+      --surface: #F8F6F8;
       --card: #FFFFFF;
-      --border: #CBD5E1;
-      --text: #0F172A;
-      --muted: #64748B;
-      --accent: #0284C7;
+      --border: #D9D9D9;
+      --text: #1D161D;
+      --muted: #786C78;
+      --accent: #6A2F8D;
       --crit: #DC2626;
       --crit-bg: #FEF2F2;
       --ok: #16A34A;
       --ok-bg: #F0FDF4;
     }
-    body { background: #FFF; color: #0F172A; padding: 0; font-size: 11px; }
-    .hero { background: #0B132B !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #FFF; color: #1D161D; padding: 0; font-size: 11px; }
+    .hero { background: #F8F6F8 !important; border: 1px solid #D9D9D9 !important; border-left: 4px solid #6A2F8D !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h2 { color: #6A2F8D !important; }
     table { page-break-inside: auto; }
     tr { page-break-inside: avoid; page-break-after: auto; }
     .card { break-inside: avoid; }
-    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th { background: #3A194D !important; color: #FFFFFF !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .mono { color: #6A2F8D !important; }
   }
 </style>
 </head>
