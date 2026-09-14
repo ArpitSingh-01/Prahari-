@@ -1,0 +1,183 @@
+@import "tailwindcss";
+@import "../tokens.css";
+
+@theme inline {
+  --color-paper: var(--color-paper);
+  --color-surface: var(--color-paper-2);
+  --color-raised: var(--color-paper-3);
+  --color-line: var(--color-rule);
+  --color-ink: var(--color-ink);
+  --color-subtle: var(--color-neutral);
+  --color-faint: var(--color-muted);
+  --color-primary: var(--color-primary);
+  --color-accent: var(--color-accent);
+  --color-link: var(--color-link);
+  --color-critical: var(--color-critical);
+  --color-high: var(--color-high);
+  --color-medium: var(--color-medium);
+  --color-low: var(--color-low);
+  --color-pass: var(--color-pass);
+  --color-critical-bg: var(--color-critical-bg);
+  --color-high-bg: var(--color-high-bg);
+  --color-medium-bg: var(--color-medium-bg);
+  --color-low-bg: var(--color-low-bg);
+  --color-pass-bg: var(--color-pass-bg);
+
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  --radius-card: 12px;
+}
+
+html,
+body {
+  overflow-x: clip;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+}
+
+html { color-scheme: dark; }
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* surfaces — flat, subtle border, no heavy shadow (per system) */
+.card {
+  background: var(--color-paper-2);
+  border: 1px solid oklch(100% 0 0 / 0.07);
+  border-radius: var(--radius-card);
+}
+
+/* gradient brand moment — text + thin rules only, never big fills */
+.grad-text {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brand-edge {
+  background: var(--grad-brand);
+}
+
+/* violet glow — one place: behind hero display, very quiet */
+.violet-haze {
+  background: radial-gradient(
+    60% 48% at 50% -4%,
+    oklch(50% 0.13 310 / 0.22),
+    transparent 74%
+  );
+}
+
+/* micro label — the DM Mono voice */
+.label {
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.pulsing { animation: pulse-soft 1.8s var(--ease-in-out) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulsing { animation: none; }
+}
+
+/* ===== marketing light scope (landing + login) ==========================
+   Per the Juicebox design-system extraction: white canvas, #1D161D ink,
+   #0000EE links, violet #6A2F8D bands, DM Mono labels, 4px radii.
+   The console keeps the dark instrument theme (page theme lock:
+   marketing = light, product = dark — two surfaces, one system). */
+.theme-light {
+  background: #ffffff;
+  color: var(--mkt-ink);
+  --color-paper: #ffffff;
+  --color-paper-2: #f8f6f8;
+  --color-paper-3: #efecef;
+  --color-rule: #d9d9d9;
+  --color-ink: #1d161d;
+  --color-neutral: #564e56;
+  --color-muted: #786c78;
+  --color-primary: #6a2f8d;
+  --color-accent: #6a2f8d;
+  --color-link: #0000ee;
+  --color-focus: #6a2f8d;
+}
+.theme-light ::selection {
+  background: #0000ee;
+  color: #ffffff;
+}
+.theme-light .label {
+  color: #786c78;
+}
+/* light-theme link semantics per extraction: blue links, black hover */
+.theme-light a {
+  color: var(--color-link);
+}
+/* dark CTA band (violet full-bleed per extraction) */
+.mkt-band {
+  background: var(--color-primary);
+  color: #f8f6f8;
+}
+/* spec-exact buttons (extraction: 42px, 13/14 padding, 4px radius, 8px gap) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--btn-gap);
+  height: var(--btn-h);
+  padding: var(--btn-pad-y) var(--btn-pad-x);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16px;
+  transition: transform var(--dur-instant) var(--ease-out),
+              background-color var(--dur-instant) var(--ease-in-out);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background: #61367d;
+}
+.theme-light .btn-primary {
+  background: #1d161d;
+  color: #f8f6f8;
+}
+.theme-light .btn-primary:hover {
+  background: #000000;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule);
+}
+.btn-ghost:hover {
+  background: var(--color-paper-2);
+}

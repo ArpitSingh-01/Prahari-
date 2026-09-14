@@ -1,0 +1,81 @@
+/* SecureMailScope design tokens — juicebox-inspired foundation (v3).
+   Dark aubergine canvas · violet primary · web-blue links · gradient brand
+   moments · tight 4px rhythm · near-flat surfaces. Severity semantics kept.
+   Marketing surfaces (landing, login) use .theme-light (see globals.css). */
+
+:root {
+  /* palette — foundation from the extracted system, adapted (not copied) */
+  --color-paper:      #2A232A;            /* canvas */
+  --color-paper-2:   #3B353B;            /* elevated surface / cards */
+  --color-paper-3:   #453E45;            /* hover surface */
+  --color-rule:      #786C78;            /* borders */
+  --color-ink:       #F8F6F8;            /* text */
+  --color-neutral:   #C4BCC4;            /* secondary text (lifted for AA on #2A232A) */
+  --color-muted:     #998F99;            /* tertiary text */
+  --color-primary:   #6A2F8D;            /* violet primary */
+  --color-accent:    #AD22FF;             /* gradient end / vivid moments */
+  --color-link:      #8D8DFF;            /* #0000EE lifted for dark canvas (AA) */
+  --color-link-ink:  #F8F6F8;
+  --color-focus:     #AD22FF;
+
+  /* brand gradient moments — hero accents, CTAs; not backgrounds */
+  --grad-brand: linear-gradient(120deg, #E7DEED 0%, #AD22FF 100%);
+  --grad-deep:  linear-gradient(160deg, #3A194D 0%, #261132 100%);
+
+  /* semantic severity — kept from v2, hues tuned to sit on aubergine */
+  --color-critical:    #FF7A6B;
+  --color-high:        #FFB25C;
+  --color-medium:      #FFE08A;
+  --color-low:         #8FD0FF;
+  --color-pass:        #7DE8B8;
+  --color-critical-bg: #4A2723;
+  --color-high-bg:     #4A3A25;
+  --color-medium-bg:   #494428;
+  --color-low-bg:      #26333F;
+  --color-pass-bg:     #234034;
+
+  /* fonts — 2+1: Space Grotesk (Roobert-adjacent grotesk) + DM Mono data voice */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body:    "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    "DM Mono", ui-monospace, monospace;
+
+  /* spacing — tight 4px grid */
+  --space-3xs: 2px;  --space-2xs: 4px;  --space-xs: 8px;  --space-sm: 12px;
+  --space-md: 16px;  --space-lg: 20px;  --space-xl: 24px; --space-2xl: 32px;
+  --space-3xl: 48px; --space-4xl: 64px;
+
+  /* type — marketing scale per design-system extraction:
+     xs 10 · sm 12 · md 13 · lg 14 · xl 15 · 2xl 16 · 3xl 18 · 4xl 20
+     h1 72/81 · h2 48/48 (weight 500) */
+  --text-xs: 12px;   --text-base: 16px;  --text-md: 18px;
+  --text-lg: 24px;   --text-xl: 28px;    --text-2xl: 40px;
+  --text-3xl: 48px;  --text-4xl: 64px;
+  --text-display: clamp(40px, 7vw, 72px);
+  --text-h1: 72px;   --lh-h1: 81px;
+  --text-h2: 48px;   --lh-h2: 48px;
+
+  --track-display: -0.03em;
+  --lh-tight: 1.13;
+  --lh-body: 1.25;
+
+  /* motion — fluid, no linear; instant tier per extraction = 200ms */
+  --ease-out:    cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-instant: 200ms;
+  --dur-fast: 160ms;  --dur-base: 240ms;  --dur-slow: 420ms;
+
+  /* radii — small, sharp: 4px buttons, 12px cards */
+  --radius-btn: 4px;
+  --radius-card: 12px;
+  --radius-input: 6px;
+
+  /* buttons — per extraction: 42px height, 13/14px padding, 8px gap */
+  --btn-h: 42px;
+  --btn-pad-x: 14px;
+  --btn-pad-y: 13px;
+  --btn-gap: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 1ms; --dur-base: 150ms; --dur-slow: 150ms; }
+}

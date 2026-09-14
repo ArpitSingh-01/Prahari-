@@ -1,0 +1,24 @@
+# Prahari — SecureMailScope backend (Render, native Python, free tier)
+services:
+  - type: web
+    name: prahari-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false                # the Vercel domain, comma-separated; '*' is rejected
+      - key: MAX_UPLOAD_MB
+        value: "25"
+      - key: MAX_CONCURRENT_ANALYSES
+        value: "2"

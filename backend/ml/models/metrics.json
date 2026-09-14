@@ -1,0 +1,98 @@
+{
+  "schema": "prahari.modelcard/v1",
+  "risk_classifier": {
+    "model": "GradientBoostingClassifier",
+    "n_estimators": 200,
+    "features": 21,
+    "train_size": 167,
+    "test_size": 56,
+    "cv_accuracy": 0.9686,
+    "holdout_accuracy": 0.9821,
+    "per_class": {
+      "macro": {
+        "precision": 0.9833,
+        "recall": 0.9773,
+        "f1": 0.9795
+      },
+      "critical": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 26
+      },
+      "high": {
+        "precision": 1.0,
+        "recall": 0.9091,
+        "f1": 0.9524,
+        "support": 11
+      },
+      "medium": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 5
+      },
+      "low": {
+        "precision": 0.9333,
+        "recall": 1.0,
+        "f1": 0.9655,
+        "support": 14
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "matrix": [
+        [
+          26,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          10,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          5,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          14
+        ]
+      ]
+    },
+    "label_distribution": {
+      "critical": 105,
+      "high": 43,
+      "medium": 20,
+      "low": 55
+    },
+    "labeling": "Labels derived from the deterministic rule engine (NIST SP 800-52r2 / RFC 8996 / BSI TR-02102 / CERT-In) over a synthetic pcap corpus \u2014 the classifier learns published guidance, not opinion."
+  },
+  "anomaly_detector": {
+    "model": "IsolationForest",
+    "contamination": 0.05,
+    "baseline_sessions": 55,
+    "flag_rate_all": 0.3049,
+    "flag_rate_clean_baseline": 0.0545,
+    "corpus_sessions": 223,
+    "training": "Unsupervised: fitted only on clean sessions to learn a healthy baseline; deviations explained via per-feature z-scores."
+  },
+  "corpus": {
+    "sessions": 223,
+    "clean_sessions": 55,
+    "source": "synthetic pcap corpus (scripts/gen_traffic.py), rule-engine labeled"
+  }
+}
