@@ -14,7 +14,7 @@ const dmMono = DM_Mono({
 export const metadata: Metadata = {
   title: "Prahari — email crypto posture, from the wire",
   description:
-    "Prahari — SecureMailScope · AI-Assisted Cryptographic Security Posture Assessment. Passive analysis of SMTP, IMAP and POP3 traffic: every handshake parsed, every certificate checked, every weakness scored with its fix.",
+    "Prahari — AI-Assisted Cryptographic Security Posture Assessment. Passive analysis of SMTP, IMAP and POP3 traffic: every handshake parsed, every certificate checked, every weakness scored with its fix.",
 };
 
 export default function RootLayout({

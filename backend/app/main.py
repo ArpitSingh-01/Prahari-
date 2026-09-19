@@ -1,5 +1,5 @@
-"""Prahari — SecureMailScope · AI-Assisted Cryptographic Security Posture
-Assessment. FastAPI application entry point."""
+"""Prahari — AI-assisted cryptographic security posture assessment for
+email traffic. FastAPI application entry point."""
 from __future__ import annotations
 
 import time
@@ -28,11 +28,11 @@ app.include_router(reports.router)
 def health():
     """Uptime probe (keep-alive pings via cron-job.org every ~10 min keep
     the Render free instance warm and the Supabase project active — see
-    docs/deployment). Touches the store so a degraded DB shows up here."""
+    DEPLOY.md). Touches the store so a degraded DB shows up here."""
     db = "ok"
     try:
         from .deps import store
-        store().list_scans("__health__", 1, 0)
+        store().list_scans(1, 0)
     except Exception:
         db = "degraded"
     return {"status": "ok", "db": db, "ts": time.time()}
@@ -41,6 +41,6 @@ def health():
 @app.get("/")
 def root():
     return {"service": "prahari-api",
-            "product": "Prahari — SecureMailScope · AI-Assisted Cryptographic "
-                       "Security Posture Assessment",
+            "product": "Prahari — AI-Assisted Cryptographic Security "
+                       "Posture Assessment",
             "docs": "/docs"}

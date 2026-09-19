@@ -1,8 +1,7 @@
 # Prahari
 
-**Prahari — SecureMailScope · AI-Assisted Cryptographic Security Posture
-Assessment** — Smart India Hackathon 2026, Problem Statement 26159 (NTRO).
-*Prahari* (प्रहरी, "sentinel").
+**Prahari — AI-Assisted Cryptographic Security Posture Assessment** for
+email infrastructure. *Prahari* (प्रहरी, "sentinel").
 
 Upload a PCAP of SMTP/IMAP/POP3 traffic. Prahari passively reconstructs
 every session, parses every TLS handshake, validates every certificate,
@@ -13,12 +12,16 @@ fusion, and produces a 0–100 posture score with A–F grades, an interactive
 dashboard with evidence drill-down, compliance mapping, and JSON/HTML/PDF
 forensic reports.
 
+Open access: no accounts, one shared workspace. Upload caps, analysis
+concurrency limits and 24 h capture retention are the only guards — the
+data model is public by design.
+
 ## Repository layout
 
 ```
 backend/    FastAPI + dpkt pipeline + scikit-learn  → Render (root dir: backend)
 frontend/   Next.js 15 + Tailwind v4 + Recharts     → Vercel (root dir: frontend)
-docs/       design.md · backend.md · frontend.md · implementation-plan.md · demo-script.md
+docs/       architecture.md · deployment guide
 ```
 
 ## Quick start (local, no Docker, no Supabase required)
@@ -35,8 +38,7 @@ uvicorn app.main:app --reload     # http://localhost:8000  (docs at /docs)
 ```
 
 Without Supabase env vars the backend runs in **local mode**: in-memory
-storage and `Authorization: Bearer dev-<name>` tokens. The entire test
-suite runs this way.
+storage, scans lost on restart. The entire test suite runs this way.
 
 Frontend:
 
@@ -48,17 +50,16 @@ npm run dev                       # http://localhost:4567
 
 (The dev script pins port 4567; the backend's default CORS already allows
 `http://localhost:4567`. The backend above must be running on :8000 — the
-frontend proxies all analysis calls to it.)
+frontend calls it directly via `NEXT_PUBLIC_API_URL`, defaulting to
+`http://localhost:8000`.)
 
-Open `/login` and either create an account (when Supabase env vars are
-set) or click **Continue as demo analyst** (local mode: any email creates
-a `dev-<user>` session). Upload `backend/fixtures/pcaps/mixed.pcap` and
-explore.
+Open http://localhost:4567, upload `backend/fixtures/pcaps/mixed.pcap`
+and explore.
 
 Tests:
 
 ```bash
-cd backend && python -m pytest tests/ -q          # 54 golden+API tests
+cd backend && python -m pytest tests/ -q          # 51 golden+API tests
 cd backend && python -m pytest tests/ -q --supabase   # + live Supabase suite (opt-in, needs env)
 cd frontend && npm run build                     # type-checked production build
 ```
@@ -92,21 +93,20 @@ publishes them to `backend/ml/models/metrics.json` — served at
 
 ## Deployment
 
+Full step-by-step: [docs/DEPLOY.md](docs/DEPLOY.md). Summary:
+
 | Piece | Where | Root dir | Notes |
 | --- | --- | --- | --- |
-| Frontend | Vercel (hobby) | `frontend/` | env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
-| Backend | Render (free) | `backend/` | build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`; env per `backend/.env.example` |
-| Database/Auth | Supabase (free) | — | run `backend/app/db/schema.sql`, enable email auth, set redirect URLs to the Vercel domain, create private buckets `pcaps` + `reports` |
+| Frontend | Vercel (hobby) | `frontend/` | env: `NEXT_PUBLIC_API_URL` |
+| Backend | Render (free) | `backend/` | build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`; env per `backend/render.yaml` |
+| Database + Storage | Supabase (free) | — | run `backend/app/db/schema.sql`, create one **private** bucket `pcaps` |
 
 The committed ML models (`backend/ml/models/*.joblib` + `metrics.json`)
-mean Render never trains at runtime. The frontend uses cookie-based
-sessions (`@supabase/ssr`) with middleware that refreshes tokens on every
-request and guards the app routes; in local mode it falls back to the
-`dev-` token transparently. Render's free instance sleeps after ~15 min
-idle: the frontend retries the first API call for ~50 s with an explicit
-"waking the analysis engine" state, and `/api/health` (which touches the
-DB, keeping Supabase active too) is pinger-friendly — keep it warm with a
-cron-job.org ping every 10 min.
+mean Render never trains at runtime. Render's free instance sleeps after
+~15 min idle: the frontend retries the first API call for ~50 s with an
+explicit "waking the analysis engine" state, and `/api/health` (which
+touches the DB, keeping Supabase active too) is pinger-friendly — keep it
+warm with a cron-job.org ping every 10 min.
 
 ## Test corpus (27 pcaps, regenerate any time)
 
@@ -141,17 +141,17 @@ sign SHA-1) and exercises rule CRT-006 end-to-end.
 | `good-smtps / imaps-good / pop3s-good / starttls-ok` | clean baselines | 100/A, clean |
 | `train-1..4.pcap` | randomized ML training corpus (45 sessions each) | — |
 
-Every scenario is locked by a golden-file pytest (54 tests), so rule
+Every scenario is locked by a golden-file pytest (51 tests), so rule
 regressions fail CI loudly.
 
 ## Deliberate stack substitutions (and why)
 
-The problem statement suggests a reference stack; we deviate in four
-places, each forced by the deployment target (free-tier Vercel + Render +
-Supabase) rather than preference:
+Four deviations from a classic reference stack, each forced by the
+deployment target (free-tier Vercel + Render + Supabase) rather than
+preference:
 
 1. **No Docker/compose.** The stack deploys as three managed services
-   (Vercel frontend, Render backend, Supabase DB/auth/storage) — containers
+   (Vercel frontend, Render backend, Supabase DB/storage) — containers
    add nothing there and free tiers don't run them.
 2. **ThreadPoolExecutor instead of Celery/Redis.** There is no free
    Redis broker; a bounded in-process executor plus a semaphore gives the
@@ -191,6 +191,5 @@ explanations. Published metrics: holdout accuracy 98.2%, 5-fold CV 96.9%,
 macro F1 0.98 (see `backend/ml/models/metrics.json` or Settings → Model
 card in the app).
 
-Docs: [backend](docs/backend.md) · [frontend](docs/frontend.md) ·
-[design](docs/design.md) · [demo script](docs/demo-script.md) ·
-[implementation plan](docs/implementation-plan.md)
+Docs: [architecture](docs/ARCHITECTURE.md) ·
+[deployment guide](docs/DEPLOY.md)

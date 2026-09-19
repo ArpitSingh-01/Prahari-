@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { FadeUp, RevealOnScroll } from "@/components/motion";
-import { isLoggedIn, api } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
@@ -132,13 +132,7 @@ function LiveStats() {
 }
 
 export default function Landing() {
-  // localStorage is browser-only; read AFTER mount so SSR and first client
-  // render match (no hydration mismatch)
-  const [signed, setSigned] = useState(false);
-  useEffect(() => {
-    setSigned(isLoggedIn());
-  }, []);
-  const consoleHref = signed ? "/dashboard" : "/login";
+  const consoleHref = "/dashboard";
 
   return (
     <div className="theme-light min-h-dvh">
@@ -185,7 +179,7 @@ export default function Landing() {
             </FadeUp>
             <FadeUp delay={0.22}>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href={signed ? "/scans/new" : "/login"} className="btn btn-primary">
+                <Link href="/scans/new" className="btn btn-primary">
                   Analyze a capture
                   <ArrowRight size={15} weight="bold" aria-hidden />
                 </Link>
@@ -280,7 +274,6 @@ export default function Landing() {
             <span className="brand-edge h-3 w-3 rounded-[3px]" aria-hidden />
             <span className="text-[14px] font-medium">Prahari</span>
           </span>
-          <span className="label">SIH 2026 · PS 26159 · NTRO</span>
           <span className="label">NIST SP 800-52r2 · BSI · CERT-In</span>
         </div>
       </footer>

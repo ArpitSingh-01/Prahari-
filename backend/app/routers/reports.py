@@ -1,9 +1,8 @@
 """Report export endpoints (JSON / HTML / PDF) + misc public routes."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response
 
-from ..auth import get_current_user
 from ..deps import store
 from ..ml_runtime.predict import model_info
 from ..reports.builder import build_html, build_json, build_pdf
@@ -11,12 +10,17 @@ from ..reports.builder import build_html, build_json, build_pdf
 router = APIRouter(prefix="/api", tags=["reports"])
 
 
-@router.get("/scans/{scan_id}/report.json")
-def report_json(scan_id: str, user: str = Depends(get_current_user)):
-    scan = store().get_scan(scan_id, user)
+def _result(scan_id: str) -> dict:
     result = store().get_result(scan_id)
+    scan = store().get_scan(scan_id)
     if not scan or result is None:
         raise HTTPException(404, "report not available")
+    return scan, result
+
+
+@router.get("/scans/{scan_id}/report.json")
+def report_json(scan_id: str):
+    scan, result = _result(scan_id)
     data = build_json(result)
     return Response(data, media_type="application/json",
                     headers={"Content-Disposition":
@@ -24,11 +28,8 @@ def report_json(scan_id: str, user: str = Depends(get_current_user)):
 
 
 @router.get("/scans/{scan_id}/report.html")
-def report_html(scan_id: str, user: str = Depends(get_current_user)):
-    scan = store().get_scan(scan_id, user)
-    result = store().get_result(scan_id)
-    if not scan or result is None:
-        raise HTTPException(404, "report not available")
+def report_html(scan_id: str):
+    scan, result = _result(scan_id)
     data = build_html(result, scan["name"])
     return Response(data, media_type="text/html",
                     headers={"Content-Disposition":
@@ -36,11 +37,8 @@ def report_html(scan_id: str, user: str = Depends(get_current_user)):
 
 
 @router.get("/scans/{scan_id}/report.pdf")
-def report_pdf(scan_id: str, user: str = Depends(get_current_user)):
-    scan = store().get_scan(scan_id, user)
-    result = store().get_result(scan_id)
-    if not scan or result is None:
-        raise HTTPException(404, "report not available")
+def report_pdf(scan_id: str):
+    scan, result = _result(scan_id)
     data = build_pdf(result, scan["name"])
     return Response(data, media_type="application/pdf",
                     headers={"Content-Disposition":
@@ -49,7 +47,7 @@ def report_pdf(scan_id: str, user: str = Depends(get_current_user)):
 
 @router.get("/model")
 def model_card():
-    """Published model metrics for the UI model card (plan doc diff #5).
+    """Published model metrics for the UI model card.
     metrics.json is the authority: served flat so the UI reads
     risk_classifier/anomaly_detector with their full fields. Falls back to
     the bundle summary when the metrics file is absent."""
@@ -62,20 +60,18 @@ def model_card():
 
 @router.get("/stats")
 def public_stats():
-    """Landing-page counters — real numbers only (null until scans exist)."""
+    """Landing-page counters — real numbers only (0 until scans exist)."""
     s = store()
-    total = 0
     sessions = 0
     findings = 0
     try:
-        scans, count = s.list_scans("__any__", 100, 0)
+        s.list_scans(100, 0)          # fills the read-through cache from the DB
     except Exception:
-        scans, count = [], 0
+        pass
     for scan in list(getattr(s, "scans", {}).values()):
-        total += 1
         result = s.get_result(scan["id"])
         if result:
             sessions += len(result.get("sessions", []))
             findings += len(result.get("findings", []))
-    return {"scans": total, "sessions": sessions, "findings": findings,
-            "ml": model_info()}
+    return {"scans": len(getattr(s, "scans", {})), "sessions": sessions,
+            "findings": findings, "ml": model_info()}

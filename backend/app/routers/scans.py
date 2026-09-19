@@ -1,5 +1,11 @@
 """Scan endpoints: upload, list, detail, analyze, status, sessions,
-findings, certificates, anomalies, summary."""
+findings, certificates, anomalies, summary.
+
+Open access model: the tool runs without user accounts — one shared
+workspace where every visitor sees (and may delete) every scan. All
+boundaries are capacity guards (upload cap, analysis concurrency), not
+identity checks.
+"""
 from __future__ import annotations
 
 import os
@@ -7,10 +13,9 @@ import re
 import tempfile
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from ..auth import get_current_user, require_admin
 from ..config import settings
 from ..deps import store
 from ..worker import start_analysis
@@ -25,15 +30,15 @@ _SAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
 MAX_NAME_LEN = 120
 
 
-def _own_scan(scan_id: str, user_id: str) -> dict:
-    scan = store().get_scan(scan_id, user_id)
+def _scan_or_404(scan_id: str) -> dict:
+    scan = store().get_scan(scan_id)
     if not scan:
         raise HTTPException(404, "scan not found")
     return scan
 
 
-def _own_result(scan_id: str, user_id: str) -> tuple[dict, dict]:
-    scan = _own_scan(scan_id, user_id)
+def _result_or_409(scan_id: str) -> tuple[dict, dict]:
+    scan = _scan_or_404(scan_id)
     result = store().get_result(scan_id)
     if result is None:
         raise HTTPException(409, "scan analysis not available (status: %s)"
@@ -42,8 +47,7 @@ def _own_result(scan_id: str, user_id: str) -> tuple[dict, dict]:
 
 
 @router.post("", status_code=201)
-async def upload_scan(file: UploadFile = File(...),
-                      user: str = Depends(get_current_user)):
+async def upload_scan(file: UploadFile = File(...)):
     # stream to disk rather than holding the whole capture in memory
     # (Render free tier: 512 MB — never load what you can stream)
     limit = settings.max_upload_mb * 1024 * 1024
@@ -83,53 +87,34 @@ async def upload_scan(file: UploadFile = File(...),
     name = _SAFE_NAME.sub("_", os.path.basename(file.filename or "capture.pcap"))
     name = name.strip("._")[:MAX_NAME_LEN] or "capture.pcap"
     scan_id = str(uuid.uuid4())
-    path = "%s/%s.pcap" % (user, scan_id)
+    path = "%s.pcap" % scan_id
     store().put_object(path, raw)
-    return store().create_scan(user, name, total, path, scan_id=scan_id)
-
-
-@router.get("/admin/all")
-def admin_list_all_scans(limit: int = 50, offset: int = 0,
-                         role: str = Depends(require_admin)):
-    """Admin-only: every user's scans (analysts only ever see their own —
-    this is the administrative oversight view)."""
-    limit = min(max(limit, 1), 200)
-    s = store()
-    rows = []
-    with s.lock:
-        for scan in list(s.scans.values()):
-            rows.append({k: scan.get(k) for k in
-                         ("id", "user_id", "name", "status", "grade",
-                          "posture_score", "created_at")})
-    rows.sort(key=lambda r: r["created_at"] or "", reverse=True)
-    return {"items": rows[offset:offset + limit], "total": len(rows),
-            "role": role}
+    return store().create_scan(name, total, path, scan_id=scan_id)
 
 
 @router.get("")
-def list_scans(limit: int = 20, offset: int = 0,
-               user: str = Depends(get_current_user)):
+def list_scans(limit: int = 20, offset: int = 0):
     limit = min(max(limit, 1), 100)
-    items, total = store().list_scans(user, limit, offset)
+    items, total = store().list_scans(limit, offset)
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/{scan_id}")
-def get_scan(scan_id: str, user: str = Depends(get_current_user)):
-    return _own_scan(scan_id, user)
+def get_scan(scan_id: str):
+    return _scan_or_404(scan_id)
 
 
 @router.delete("/{scan_id}", status_code=204)
-def delete_scan(scan_id: str, user: str = Depends(get_current_user)):
-    scan = _own_scan(scan_id, user)
+def delete_scan(scan_id: str):
+    scan = _scan_or_404(scan_id)
     store().delete_object(scan["file_path"])
-    store().delete_scan(scan_id, user)
+    store().delete_scan(scan_id)
     return Response(status_code=204)
 
 
 @router.post("/{scan_id}/analyze", status_code=202)
-async def analyze(scan_id: str, user: str = Depends(get_current_user)):
-    scan = _own_scan(scan_id, user)
+async def analyze(scan_id: str):
+    scan = _scan_or_404(scan_id)
     if scan["status"] in ("parsing",):
         raise HTTPException(409, "analysis already running")
     if scan["status"] == "complete":
@@ -143,15 +128,15 @@ async def analyze(scan_id: str, user: str = Depends(get_current_user)):
 
 
 @router.get("/{scan_id}/status")
-def scan_status(scan_id: str, user: str = Depends(get_current_user)):
-    scan = _own_scan(scan_id, user)
+def scan_status(scan_id: str):
+    scan = _scan_or_404(scan_id)
     return {"status": scan["status"], "progress": scan["progress"],
             "error": scan["error"]}
 
 
 @router.get("/{scan_id}/summary")
-def scan_summary(scan_id: str, user: str = Depends(get_current_user)):
-    scan, result = _own_result(scan_id, user)
+def scan_summary(scan_id: str):
+    scan, result = _result_or_409(scan_id)
     from ..reports.builder import _summary_text
     return {"summary": _summary_text(result), "posture": result["posture"]}
 
@@ -159,9 +144,8 @@ def scan_summary(scan_id: str, user: str = Depends(get_current_user)):
 @router.get("/{scan_id}/sessions")
 def list_sessions(scan_id: str, protocol: str | None = None,
                   transport: str | None = None, grade: str | None = None,
-                  anomaly: bool | None = None, limit: int = 50, offset: int = 0,
-                  user: str = Depends(get_current_user)):
-    _, result = _own_result(scan_id, user)
+                  anomaly: bool | None = None, limit: int = 50, offset: int = 0):
+    _, result = _result_or_409(scan_id)
     items = result["sessions"]
     if protocol:
         items = [s for s in items if s["protocol"] == protocol]
@@ -177,9 +161,8 @@ def list_sessions(scan_id: str, protocol: str | None = None,
 
 
 @router.get("/{scan_id}/sessions/{session_id}")
-def get_session(scan_id: str, session_id: str,
-                user: str = Depends(get_current_user)):
-    _, result = _own_result(scan_id, user)
+def get_session(scan_id: str, session_id: str):
+    _, result = _result_or_409(scan_id)
     for s in result["sessions"]:
         if s["session_id"] == session_id:
             sess_findings = [f for f in result["findings"]
@@ -193,9 +176,8 @@ def get_session(scan_id: str, session_id: str,
 
 @router.get("/{scan_id}/findings")
 def list_findings(scan_id: str, severity: str | None = None,
-                  category: str | None = None, limit: int = 100, offset: int = 0,
-                  user: str = Depends(get_current_user)):
-    _, result = _own_result(scan_id, user)
+                  category: str | None = None, limit: int = 100, offset: int = 0):
+    _, result = _result_or_409(scan_id)
     items = result["findings"]
     if severity:
         items = [f for f in items if f["severity"] == severity]
@@ -207,25 +189,24 @@ def list_findings(scan_id: str, severity: str | None = None,
 
 
 @router.get("/{scan_id}/advisories")
-def list_advisories(scan_id: str, limit: int = 100, offset: int = 0,
-                    user: str = Depends(get_current_user)):
+def list_advisories(scan_id: str, limit: int = 100, offset: int = 0):
     """Informational zero-weight posture advisories (e.g. PQC migration)."""
-    _, result = _own_result(scan_id, user)
+    _, result = _result_or_409(scan_id)
     items = result.get("advisories", [])
     return {"items": items[offset:offset + min(limit, 500)],
             "total": len(items), "limit": limit, "offset": offset}
 
 
 @router.get("/{scan_id}/certificates")
-def list_certificates(scan_id: str, user: str = Depends(get_current_user)):
-    _, result = _own_result(scan_id, user)
+def list_certificates(scan_id: str):
+    _, result = _result_or_409(scan_id)
     return {"items": result["certificates"],
             "total": len(result["certificates"])}
 
 
 @router.get("/{scan_id}/anomalies")
-def list_anomalies(scan_id: str, user: str = Depends(get_current_user)):
-    _, result = _own_result(scan_id, user)
+def list_anomalies(scan_id: str):
+    _, result = _result_or_409(scan_id)
     flagged = [s for s in result["sessions"] if s["is_anomaly"]]
     explanations = {e["session_id"]: e for e in result["anomaly_explanations"]}
     items = [{**s, "explanation": explanations.get(s["session_id"], {})}

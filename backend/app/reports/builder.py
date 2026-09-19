@@ -31,7 +31,7 @@ from reportlab.platypus import (
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 PRODUCT = "Prahari"
-PRODUCT_LINE = "Prahari — SecureMailScope · AI-Assisted Cryptographic Security Posture Assessment"
+PRODUCT_LINE = "Prahari — AI-Assisted Cryptographic Security Posture Assessment"
 SCHEMA = "prahari.report/v1"
 SEV_ORDER = ["critical", "high", "medium", "low", "info"]
 
@@ -241,7 +241,7 @@ class NumberedCanvas(canvas.Canvas):
         if self._pageNumber > 1:
             self.setFont("Helvetica-Bold", 7.5)
             self.setFillColor(VIOLET_PRIMARY)
-            self.drawString(margin, h - 9.5 * mm, "PRAHARI // SECUREMAILSCOPE")
+            self.drawString(margin, h - 9.5 * mm, "PRAHARI")
             self.setFont("Helvetica", 7.5)
             self.setFillColor(MUTED_TEXT)
             self.drawString(margin + 52 * mm, h - 9.5 * mm, "— Cryptographic Security Posture Assessment")
@@ -261,7 +261,7 @@ class NumberedCanvas(canvas.Canvas):
         self.drawString(margin, 8 * mm, "PRAHARI")
         self.setFont("Helvetica", 7)
         self.setFillColor(MUTED_TEXT)
-        self.drawString(margin + 15 * mm, 8 * mm, "· SIH 2026 NTRO (PS-26159) · Passive PCAP Cryptanalysis · Zero Active Probing")
+        self.drawString(margin + 15 * mm, 8 * mm, "· Passive PCAP Cryptanalysis · Zero Active Probing")
 
         self.setFont("Helvetica-Bold", 7.5)
         self.setFillColor(INK_DARK)
@@ -337,13 +337,12 @@ def build_pdf(result: dict, scan_name: str = "capture.pcap") -> bytes:
     esc_scan_name = _esc(scan_name)
     left_banner = [
         Paragraph(
-            "<font color='#6A2F8D' size='7'><b>SMART INDIA HACKATHON 2026 · NTRO PROBLEM STATEMENT 26159</b></font>",
+            "<font color='#6A2F8D' size='7'><b>FORENSIC CRYPTOGRAPHIC ASSESSMENT · PASSIVE CAPTURE ANALYSIS</b></font>",
             ParagraphStyle("BTag", leading=8.5),
         ),
         Spacer(1, 1.5 * mm),
         Paragraph(
-            "<font color='#1D161D' size='20'><b>PRAHARI</b></font> "
-            "<font color='#6A2F8D' size='11'><b>| SECUREMAILSCOPE</b></font>",
+            "<font color='#1D161D' size='20'><b>PRAHARI</b></font> ",
             ParagraphStyle("BTitle", leading=21),
         ),
         Paragraph(
@@ -1197,8 +1196,8 @@ def build_html(result: dict, scan_name: str = "capture.pcap") -> bytes:
   <!-- Header Banner -->
   <div class="hero">
     <div>
-      <div class="hero-tag">Smart India Hackathon 2026 · NTRO (PS-26159)</div>
-      <div class="hero-title">PRAHARI <span>| SECUREMAILSCOPE</span></div>
+      <div class="hero-tag">Passive Capture Analysis · Forensic Assessment</div>
+      <div class="hero-title">PRAHARI</div>
       <div class="hero-sub">Cryptographic Security Posture &amp; Forensic Assessment Report</div>
     </div>
     <div class="hero-meta">

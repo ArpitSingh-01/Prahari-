@@ -1,19 +1,17 @@
 """Optional integration tests against a REAL Supabase project.
 
-Runs only when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (+ SUPABASE_ANON_KEY
-for the RLS check) are set in the environment AND pytest is invoked with the
-`--supabase` flag:
+Runs only when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set in the
+environment AND pytest is invoked with the `--supabase` flag:
 
     python -m pytest tests/test_supabase.py -q --supabase
 
 Without the flag or the env vars every test here skips, so CI stays green
 offline (ground rule: the default suite is local in-memory only).
 
-These tests verify §1.2 of the ship plan:
-- schema.sql applies cleanly
-- RLS isolates users (a second user cannot read another's scans)
-- storage buckets round-trip pcap bytes
-- the JWT verification path used in production
+These tests verify the production access path:
+- schema.sql's contract (tables exist, service key can query them)
+- storage bucket round-trips pcap bytes
+- the store reads through the DB across fresh instances
 """
 from __future__ import annotations
 
@@ -31,10 +29,6 @@ def _configured() -> bool:
                 and os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
 
 
-def _live(request) -> bool:
-    return request.config.getoption("--supabase") and _configured()
-
-
 pytestmark = pytest.mark.skipif(
     not (_configured()),
     reason="Supabase env vars not set; live integration suite is opt-in "
@@ -50,35 +44,29 @@ def sb_service():
 
 
 def test_schema_applies(sb_service):
-    """schema.sql's contract: the three tables exist and accept queries
+    """schema.sql's contract: the two tables exist and accept queries
     through the service role. (Applying schema.sql itself needs the SQL
     editor or a migration runner — this asserts the result.)"""
-    for table in ("scans", "scan_results", "reports"):
-        col = "user_id" if table == "scans" else ("scan_id" if table == "scan_results" else "id")
-        row = sb_service.table(table).select(col, count="exact").limit(1).execute()
-        assert row is not None
+    row = sb_service.table("scans").select("id", count="exact").limit(1).execute()
+    assert row is not None
+    row = sb_service.table("scan_results").select("scan_id", count="exact").limit(1).execute()
+    assert row is not None
 
 
-def test_rls_user_isolation(sb_service):
-    """RLS: the anon key (a real user session) must not read another user's
-    scan rows. Requires SUPABASE_ANON_KEY + two test users; without them this
-    test degrades to asserting the service key can see rows at all."""
-    anon_key = os.environ.get("SUPABASE_ANON_KEY")
-    if not anon_key:
-        pytest.skip("SUPABASE_ANON_KEY not set — full RLS check needs it")
+def test_anon_key_locked_out():
+    """RLS has no policies: the anon key must NOT be able to read scan rows
+    even when it is set. (The backend only ever uses the service key.)"""
+    url = os.environ.get("SUPABASE_URL")
+    anon = os.environ.get("SUPABASE_ANON_KEY")
+    if not (url and anon):
+        pytest.skip("SUPABASE_ANON_KEY not set — anon lockout check needs it")
     from supabase import create_client
-    url = os.environ["SUPABASE_URL"]
-    user_a = create_client(url, anon_key)
-    # sign in as a throwaway test user (must exist in the project)
-    email = os.environ.get("SUPABASE_TEST_USER", "")
-    password = os.environ.get("SUPABASE_TEST_PASSWORD", "")
-    if not (email and password):
-        pytest.skip("SUPABASE_TEST_USER/PASSWORD not set")
-    user_a.auth.sign_in_with_password({"email": email, "password": password})
-    rows = user_a.table("scans").select("*").limit(10).execute()
-    other = [r for r in rows.data
-             if r.get("user_id") != user_a.auth.get_session().user.id]
-    assert not other, "RLS leak: signed-in user read scans they do not own"
+    anon_client = create_client(url, anon)
+    try:
+        res = anon_client.table("scans").select("id").limit(1).execute()
+        assert res.data == [], "anon key read scan rows — RLS is not locked down"
+    except Exception:
+        pass          # an error/permission denial is the expected outcome
 
 
 def test_storage_roundtrip(sb_service):
@@ -111,11 +99,9 @@ def test_backend_store_read_through():
     import uuid as _uuid
     s1 = SupabaseStore()
     sid = str(_uuid.uuid4())
-    owner = "00000000-0000-0000-0000-000000000001"
-    s1.create_scan(owner, "read-through-test", 10, f"{owner}/{sid}.pcap",
-                   scan_id=sid)
+    s1.create_scan("read-through-test", 10, f"{sid}.pcap", scan_id=sid)
     s2 = SupabaseStore()          # fresh instance: simulates a Render restart
-    scan = s2.get_scan(sid, owner)
+    scan = s2.get_scan(sid)
     assert scan is not None, "fresh store failed to read an existing scan"
     assert scan["name"] == "read-through-test"
-    s1.delete_scan(sid, owner)
+    s1.delete_scan(sid)

@@ -374,75 +374,66 @@ def test_api_end_to_end(client):
     path = os.path.join(PCAPS, "mixed.pcap")
     if not os.path.exists(path):
         pytest.skip("corpus not generated")
-    auth = {"Authorization": "Bearer dev-testuser"}
     with open(path, "rb") as fh:
-        up = client.post("/api/scans", files={"file": ("mixed.pcap", fh)},
-                         headers=auth)
+        up = client.post("/api/scans", files={"file": ("mixed.pcap", fh)})
     assert up.status_code == 201, up.text
     scan_id = up.json()["id"]
 
-    assert client.post(f"/api/scans/{scan_id}/analyze", headers=auth).status_code == 202
+    assert client.post(f"/api/scans/{scan_id}/analyze").status_code == 202
 
     for _ in range(120):                      # up to ~60 s (CI slack)
-        st = client.get(f"/api/scans/{scan_id}/status", headers=auth).json()
+        st = client.get(f"/api/scans/{scan_id}/status").json()
         if st["status"] in ("complete", "failed"):
             break
         time.sleep(0.5)
     assert st["status"] == "complete", st
 
-    detail = client.get(f"/api/scans/{scan_id}", headers=auth).json()
+    detail = client.get(f"/api/scans/{scan_id}").json()
     assert detail["posture_score"] is not None
     assert detail["session_count"] >= 8
 
-    sess = client.get(f"/api/scans/{scan_id}/sessions", headers=auth).json()
+    sess = client.get(f"/api/scans/{scan_id}/sessions").json()
     assert sess["total"] >= 8
     sid = sess["items"][0]["session_id"]
-    one = client.get(f"/api/scans/{scan_id}/sessions/{sid}", headers=auth).json()
+    one = client.get(f"/api/scans/{scan_id}/sessions/{sid}").json()
     assert one["session"]["session_id"] == sid
 
-    fnd = client.get(f"/api/scans/{scan_id}/findings", headers=auth).json()
+    fnd = client.get(f"/api/scans/{scan_id}/findings").json()
     assert fnd["total"] >= 5
     # differentiator rules present in mixed corpus
     rules_hit = {f["rule_id"] for f in fnd["items"]}
     assert "CRE-001" in rules_hit, "credential exposure must fire"
     # PQC-001 is informational — served by the advisories endpoint
-    adv = client.get(f"/api/scans/{scan_id}/advisories", headers=auth).json()
+    adv = client.get(f"/api/scans/{scan_id}/advisories").json()
     adv_hit = {a["rule_id"] for a in adv["items"]}
     assert "PQC-001" in adv_hit, "PQC advisory must fire"
 
-    certs = client.get(f"/api/scans/{scan_id}/certificates", headers=auth).json()
+    certs = client.get(f"/api/scans/{scan_id}/certificates").json()
     assert certs["total"] >= 3
 
-    rj = client.get(f"/api/scans/{scan_id}/report.json", headers=auth)
+    rj = client.get(f"/api/scans/{scan_id}/report.json")
     assert rj.status_code == 200 and rj.json()["posture"]["grade"]
-    rh = client.get(f"/api/scans/{scan_id}/report.html", headers=auth)
+    rh = client.get(f"/api/scans/{scan_id}/report.html")
     assert rh.status_code == 200 and b"Prahari" in rh.content
-    rp = client.get(f"/api/scans/{scan_id}/report.pdf", headers=auth)
+    rp = client.get(f"/api/scans/{scan_id}/report.pdf")
     assert rp.status_code == 200 and rp.content[:4] == b"%PDF"
 
-    assert client.delete(f"/api/scans/{scan_id}", headers=auth).status_code == 204
-
-
-def test_auth_required(client):
-    assert client.get("/api/scans").status_code == 401
+    assert client.delete(f"/api/scans/{scan_id}").status_code == 204
 
 
 def test_upload_rejects_non_pcap(client):
-    auth = {"Authorization": "Bearer dev-testuser"}
-    r = client.post("/api/scans", files={"file": ("x.pcap", b"not a pcap")},
-                    headers=auth)
+    r = client.post("/api/scans", files={"file": ("x.pcap", b"not a pcap")})
     assert r.status_code == 400
 
 
 def test_upload_rejects_oversize(client):
-    auth = {"Authorization": "Bearer dev-testuser"}
     blob = b"\xd4\xc3\xb2\xa1" + b"\x00" * (26 * 1024 * 1024)   # 26 MB, valid magic
-    r = client.post("/api/scans", files={"file": ("big.pcap", blob)}, headers=auth)
+    r = client.post("/api/scans", files={"file": ("big.pcap", blob)})
     assert r.status_code == 413
 
 
 def test_before_after_remediation_delta():
-    """The money demo: mixed.pcap is dirty; after-remediation.pcap is 100/A."""
+    """The headline before/after pair: mixed.pcap is dirty; after-remediation.pcap is 100/A."""
     mixed = os.path.join(PCAPS, "mixed.pcap")
     after = os.path.join(PCAPS, "after-remediation.pcap")
     if not (os.path.exists(mixed) and os.path.exists(after)):
@@ -628,39 +619,3 @@ def test_renegotiation_detection_and_non_firing():
         rr = result_to_dict(analyze_pcap(open(p, "rb").read()))
         assert not any(s["renegotiation_seen"] for s in rr["sessions"]), name
         assert not any(f["rule_id"] == "CFG-007" for f in rr["findings"]), name
-
-
-# ---------------- RBAC: analyst / admin ----------------
-def test_rbac_admin_route_allowed_and_denied(client):
-    """The admin oversight route grants admins and forbids analysts (403)
-    and anonymous callers (401). Local dev role mapping: only `dev-admin`
-    is an admin; every other dev user is an analyst."""
-    # anonymous: no token at all
-    assert client.get("/api/scans/admin/all").status_code == 401
-    # analyst (default dev mapping): authenticated but forbidden
-    r = client.get("/api/scans/admin/all",
-                   headers={"Authorization": "Bearer dev-analyst"})
-    assert r.status_code == 403, "analyst must be denied the admin route"
-    # admin
-    r = client.get("/api/scans/admin/all",
-                   headers={"Authorization": "Bearer dev-admin"})
-    assert r.status_code == 200, "admin must be allowed"
-    body = r.json()
-    assert body["role"] == "admin"
-    assert isinstance(body["items"], list)
-
-
-def test_rbac_role_dependency_mapping():
-    """get_current_role defaults to analyst for ordinary dev users and
-    admin only for the explicit dev-admin user — never the reverse."""
-    import asyncio
-    from app.auth import get_current_role
-    from fastapi.security import HTTPAuthorizationCredentials
-
-    def role_of(token):
-        creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-        return asyncio.run(get_current_role(creds))
-
-    assert role_of("dev-admin") == "admin"
-    assert role_of("dev-demo") == "analyst"
-    assert role_of("dev-arbitrary-user") == "analyst"

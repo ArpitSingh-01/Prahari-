@@ -1,17 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
   FileArrowUp,
   Gear,
   GitDiff,
-  SignOut,
   SquaresFour,
 } from "@phosphor-icons/react/dist/ssr";
-import { isLoggedIn, supabaseLogout } from "@/lib/api";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
@@ -24,17 +21,7 @@ const NAV = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const reduce = useReducedMotion();
-
-  useEffect(() => {
-    if (!isLoggedIn()) router.replace("/login");
-  }, [router]);
-
-  async function signOut() {
-    await supabaseLogout();
-    router.push("/");
-  }
 
   return (
     <div className="flex min-h-dvh">
@@ -78,13 +65,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <button
-          onClick={signOut}
-          className="flex items-center gap-3 border-t border-white/[0.07] px-5 py-4 text-[14px] text-subtle transition-colors hover:text-ink max-lg:justify-center max-lg:px-0"
-        >
-          <SignOut size={17} aria-hidden />
-          <span className="max-lg:hidden">Sign out</span>
-        </button>
+        <div className="border-t border-white/[0.07] px-5 py-4 max-lg:px-0">
+          <span className="text-[12px] text-faint max-lg:hidden">
+            open workspace — scans are shared
+          </span>
+        </div>
       </aside>
 
       <main className="ml-60 flex-1 px-6 py-8 max-lg:ml-14 max-lg:px-4 lg:px-10">

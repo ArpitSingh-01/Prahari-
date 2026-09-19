@@ -1,4 +1,4 @@
-# Prahari — SecureMailScope backend (Render, native Python, free tier)
+# Prahari backend (Render, native Python, free tier)
 services:
   - type: web
     name: prahari-api
@@ -11,10 +11,6 @@ services:
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_JWT_SECRET
         sync: false
       - key: CORS_ORIGINS
         sync: false                # the Vercel domain, comma-separated; '*' is rejected

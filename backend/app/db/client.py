@@ -1,10 +1,16 @@
 """Supabase storage layer with a local in-memory fallback.
 
-SupabaseStore persists scan rows + result JSON + reports via the service
-role client and reads THROUGH the database (the in-memory dict is only a
-request-local write cache), so scans survive Render restarts and spin-downs.
+SupabaseStore persists scan rows + result JSON via the service role client
+and reads THROUGH the database (the in-memory dict is only a write-side
+cache), so scans survive Render restarts and spin-downs. Pcap bytes go to
+the private 'pcaps' Storage bucket, deleted ~24h after scan completion.
 LocalStore mirrors the same interface in-memory so the API is fully
 functional (and pytest-testable) without a live Supabase project.
+
+Open access model: there are no user accounts — every scan lives in one
+shared workspace. The service-role key (backend only) is the sole DB
+access path; RLS on the tables has no policies, so the anon key can read
+nothing even if it leaks.
 """
 from __future__ import annotations
 
@@ -26,13 +32,13 @@ class LocalStore:
         self.lock = threading.Lock()
         self.scans: dict[str, dict] = {}
         self.results: dict[str, dict] = {}
-        self.objects: dict[str, bytes] = {}          # storage objects by path
+        self.objects: dict[str, bytes] = {}          # pcap bytes by path
 
     # ---- scans ----
-    def create_scan(self, user_id: str, name: str, size: int, path: str,
+    def create_scan(self, name: str, size: int, path: str,
                     scan_id: str | None = None) -> dict:
         scan = {
-            "id": scan_id or str(uuid.uuid4()), "user_id": user_id, "name": name,
+            "id": scan_id or str(uuid.uuid4()), "name": name,
             "file_size": size, "file_path": path, "status": "uploaded",
             "progress": 0, "error": None, "posture_score": None,
             "grade": None, "protocol_counts": {}, "session_count": None,
@@ -42,13 +48,12 @@ class LocalStore:
             self.scans[scan["id"]] = scan
         return scan
 
-    def get_scan(self, scan_id: str, user_id: str) -> dict | None:
-        scan = self.scans.get(scan_id)
-        return scan if scan and scan["user_id"] == user_id else None
+    def get_scan(self, scan_id: str) -> dict | None:
+        return self.scans.get(scan_id)
 
-    def list_scans(self, user_id: str, limit: int, offset: int) -> tuple[list[dict], int]:
-        rows = [s for s in self.scans.values() if s["user_id"] == user_id]
-        rows.sort(key=lambda s: s["created_at"], reverse=True)
+    def list_scans(self, limit: int, offset: int) -> tuple[list[dict], int]:
+        rows = sorted(self.scans.values(), key=lambda s: s["created_at"],
+                      reverse=True)
         return rows[offset:offset + limit], len(rows)
 
     def update_scan(self, scan_id: str, **fields) -> None:
@@ -57,10 +62,9 @@ class LocalStore:
             if scan:
                 scan.update(fields)
 
-    def delete_scan(self, scan_id: str, user_id: str) -> bool:
+    def delete_scan(self, scan_id: str) -> bool:
         with self.lock:
-            scan = self.scans.get(scan_id)
-            if not scan or scan["user_id"] != user_id:
+            if scan_id not in self.scans:
                 return False
             del self.scans[scan_id]
             self.results.pop(scan_id, None)
@@ -76,7 +80,7 @@ class LocalStore:
     def get_result(self, scan_id: str) -> dict | None:
         return self.results.get(scan_id)
 
-    # ---- objects (pcap bytes / reports) ----
+    # ---- objects (pcap bytes) ----
     def put_object(self, path: str, data: bytes) -> None:
         with self.lock:
             self.objects[path] = data
@@ -99,9 +103,10 @@ class LocalStore:
 class SupabaseStore(LocalStore):
     """Persists to Supabase and reads through the database: the in-memory
     dicts act only as a write-side cache so a fresh instance (Render cold
-    start) still serves every previously created scan. Pcap/report bytes
-    go to Storage buckets. Pcaps are cleaned up ~24h after scan completion
-    (opportunistic, on list requests — no cron on the free tier)."""
+    start) still serves every previously created scan. Pcap bytes go to the
+    private 'pcaps' Storage bucket and are cleaned up ~24h after scan
+    completion (opportunistic, on list requests — no cron on the free
+    tier)."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -123,25 +128,25 @@ class SupabaseStore(LocalStore):
         scan.setdefault("completed_at", None)
         return scan
 
-    def create_scan(self, user_id: str, name: str, size: int, path: str,
+    def create_scan(self, name: str, size: int, path: str,
                     scan_id: str | None = None) -> dict:
-        scan = super().create_scan(user_id, name, size, path, scan_id)
+        scan = super().create_scan(name, size, path, scan_id)
         try:
             row = {k: scan[k] for k in
-                   ("id", "user_id", "name", "file_size", "file_path",
+                   ("id", "name", "file_size", "file_path",
                     "status", "progress", "created_at")}
             self.sb.table("scans").insert(row).execute()
         except Exception:
             pass
         return scan
 
-    def get_scan(self, scan_id: str, user_id: str) -> dict | None:
-        scan = super().get_scan(scan_id, user_id)
+    def get_scan(self, scan_id: str) -> dict | None:
+        scan = super().get_scan(scan_id)
         if scan:
             return scan
         try:
             res = (self.sb.table("scans").select("*")
-                   .eq("id", scan_id).eq("user_id", user_id)
+                   .eq("id", scan_id)
                    .limit(1).execute())
             if res.data:
                 row = self._row_to_scan(res.data[0])
@@ -152,13 +157,13 @@ class SupabaseStore(LocalStore):
             pass
         return None
 
-    def list_scans(self, user_id: str, limit: int, offset: int) -> tuple[list[dict], int]:
+    def list_scans(self, limit: int, offset: int) -> tuple[list[dict], int]:
         try:
-            res = (self.sb.table("scans").select("*").eq("user_id", user_id)
+            res = (self.sb.table("scans").select("*")
                    .order("created_at", desc=True)
                    .range(offset, offset + limit - 1).execute())
             count_res = (self.sb.table("scans").select("id", count="exact")
-                         .eq("user_id", user_id).execute())
+                         .execute())
             rows = [self._row_to_scan(r) for r in res.data]
             with self.lock:
                 for r in rows:
@@ -166,7 +171,7 @@ class SupabaseStore(LocalStore):
             self.cleanup_expired_pcaps()
             return rows, count_res.count or len(rows)
         except Exception:
-            return super().list_scans(user_id, limit, offset)
+            return super().list_scans(limit, offset)
 
     def update_scan(self, scan_id: str, **fields) -> None:
         super().update_scan(scan_id, **fields)
@@ -175,13 +180,13 @@ class SupabaseStore(LocalStore):
         except Exception:
             pass
 
-    def delete_scan(self, scan_id: str, user_id: str) -> bool:
-        scan = self.get_scan(scan_id, user_id)
+    def delete_scan(self, scan_id: str) -> bool:
+        scan = self.get_scan(scan_id)
         if not scan:
             return False
         if scan["file_path"]:
             self.delete_object(scan["file_path"])
-        ok = super().delete_scan(scan_id, user_id)
+        ok = super().delete_scan(scan_id)
         try:
             self.sb.table("scans").delete().eq("id", scan_id).execute()
         except Exception:
@@ -213,7 +218,7 @@ class SupabaseStore(LocalStore):
             pass
         return None
 
-    # ---- objects (pcap bytes / reports) ----
+    # ---- objects (pcap bytes) ----
     def put_object(self, path: str, data: bytes) -> None:
         super().put_object(path, data)
         try:

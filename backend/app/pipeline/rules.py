@@ -263,7 +263,7 @@ rule("CRE-001", "Cleartext credentials observed", "critical", 40, "protocol",
      "channels and disable plaintext auth mechanisms entirely.")
 rule("PQC-001", "Quantum-vulnerable key exchange (no PQC migration path)",
      "info", 0, "compliance",
-     "NIST PQC final standards (FIPS 203/204/205, 2024); NTRO PQC guidance",
+     "NIST PQC final standards (FIPS 203/204/205, 2024)",
      "Plan migration to hybrid post-quantum key establishment (e.g. X25519+ML-KEM) "
      "when your TLS stack supports it; classical ECDH/RSA kex is breakable by a "
      "harvest-now-decrypt-later adversary.")

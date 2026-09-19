@@ -1,10 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { SignOut, TrashSimple } from "@phosphor-icons/react/dist/ssr";
-import { api, supabaseLogout, SUPABASE_CONFIGURED } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { ModelCard } from "@/lib/types";
 import { ErrorNote } from "@/components/ui";
 
@@ -150,106 +147,12 @@ function ModelCardPanel() {
 }
 
 export default function SettingsPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      if (SUPABASE_CONFIGURED) {
-        const { getBrowserClient } = await import("@/lib/supabase");
-        const { data } = await getBrowserClient().auth.getUser();
-        setEmail(data.user?.email ?? null);
-      } else {
-        const token = window.localStorage.getItem("prahari_token");
-        setEmail(token?.startsWith("dev-") ? `${token.slice(4)} (demo)` : null);
-      }
-    })();
-  }, []);
-
-  async function signOut() {
-    await supabaseLogout();
-    router.push("/");
-  }
-
-  async function deleteAccount() {
-    setBusy(true);
-    setError("");
-    try {
-      if (SUPABASE_CONFIGURED) {
-        setError(
-          "Account deletion is performed from the Supabase dashboard " +
-            "(Auth → Users) or by requesting deletion — the anon key cannot " +
-            "delete auth users. This button then clears the local session.",
-        );
-      } else {
-        window.localStorage.removeItem("prahari_token");
-        window.localStorage.removeItem("sms_token");
-        router.push("/");
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <p className="label mb-2">account</p>
+        <p className="label mb-2">system</p>
         <h1 className="text-3xl font-medium leading-[1.13] tracking-tight">Settings</h1>
       </header>
-
-      <div className="card space-y-4 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="label">signed in as</div>
-            <div className="mt-1 font-mono text-[14px]">{email ?? "—"}</div>
-          </div>
-          <span
-            className="rounded-[4px] px-2 py-1 font-mono text-[12.5px]"
-            style={{
-              background: SUPABASE_CONFIGURED ? "var(--color-pass-bg)" : "var(--color-low-bg)",
-              color: SUPABASE_CONFIGURED ? "var(--color-pass)" : "var(--color-low)",
-            }}
-          >
-            {SUPABASE_CONFIGURED ? "Supabase auth" : "local demo mode"}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-3 border-t border-line pt-4">
-          <button onClick={signOut} className="btn btn-ghost">
-            <SignOut size={15} aria-hidden /> Sign out
-          </button>
-          {!confirmDelete ? (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="btn btn-ghost"
-              style={{ color: "var(--color-critical)" }}
-            >
-              <TrashSimple size={15} aria-hidden /> Delete account…
-            </button>
-          ) : (
-            <span className="flex flex-wrap items-center gap-3">
-              <span className="text-[13px] text-subtle">
-                This clears your local session{SUPABASE_CONFIGURED ? " (server account removal via Supabase dashboard)" : ""}. Sure?
-              </span>
-              <button
-                onClick={deleteAccount}
-                disabled={busy}
-                className="btn btn-ghost"
-                style={{ color: "var(--color-critical)" }}
-              >
-                Yes, delete
-              </button>
-              <button onClick={() => setConfirmDelete(false)} className="btn btn-ghost">
-                Cancel
-              </button>
-            </span>
-          )}
-        </div>
-        {error && <ErrorNote message={error} />}
-      </div>
 
       <div className="card space-y-3 p-6">
         <h2 className="label">deployment</h2>
@@ -261,10 +164,8 @@ export default function SettingsPage() {
             </dd>
           </div>
           <div className="flex justify-between gap-6">
-            <dt className="text-subtle">Auth provider</dt>
-            <dd className="text-right font-mono text-[13px]">
-              {SUPABASE_CONFIGURED ? "Supabase (cookie session)" : "local dev token"}
-            </dd>
+            <dt className="text-subtle">Access</dt>
+            <dd className="text-right font-mono text-[13px]">open — no accounts</dd>
           </div>
         </dl>
         <p className="text-[13px] leading-[1.4] text-faint">
