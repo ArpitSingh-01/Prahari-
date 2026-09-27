@@ -24,7 +24,9 @@ app.include_router(scans.router)
 app.include_router(reports.router)
 
 
-@app.get("/api/health")
+# UptimeRobot-style pingers default to HEAD requests — both probe endpoints
+# must accept it or every check fails with 405 Method Not Allowed.
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health():
     """Uptime probe (keep-alive pings via cron-job.org every ~10 min keep
     the Render free instance warm and the Supabase project active — see
@@ -41,7 +43,7 @@ def health():
 _STARTED_AT = time.time()
 
 
-@app.get("/api/ping")
+@app.api_route("/api/ping", methods=["GET", "HEAD"])
 def ping():
     """Render free-tier keep-alive for external pingers (UptimeRobot etc.):
     always 200 and touches nothing, so a monitor pointed here can never
