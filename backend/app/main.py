@@ -38,6 +38,20 @@ def health():
     return {"status": "ok", "db": db, "ts": time.time()}
 
 
+_STARTED_AT = time.time()
+
+
+@app.get("/api/ping")
+def ping():
+    """Render free-tier keep-alive for external pingers (UptimeRobot etc.):
+    always 200 and touches nothing, so a monitor pointed here can never
+    false-alert. uptime_s resets after a spin-down/restart, which makes
+    cold starts visible. For a probe that also checks the DB, use
+    /api/health instead."""
+    return {"status": "ok", "ts": time.time(),
+            "uptime_s": int(time.time() - _STARTED_AT)}
+
+
 @app.get("/")
 def root():
     return {"service": "prahari-api",
